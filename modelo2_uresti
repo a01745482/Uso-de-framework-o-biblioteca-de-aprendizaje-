@@ -1,0 +1,417 @@
+#Importación de librerías
+import pandas as pd #Esta librería sirve para el manejo de bases de datos, en este caso se importa para leer el archivo de .csv que se utilizará
+from sklearn.model_selection import train_test_split #Esta librería es para dividir arreglos en dos partes, entrenamiento y prueba
+from sklearn.preprocessing import StandardScaler #Esta librería se usa para normalización, dónde la media será 0 y la desviación estándar 1
+import numpy as np #La librería numpy se usa aquí para crear un arreglo 
+from sklearn.metrics import recall_score, accuracy_score, precision_score, f1_score #De sklearn.metrics se importan distintas métricas que ayudan a medir el desempeño de la clasiicación
+import matplotlib.pyplot as plt #Esta librería se usa para poder realizar las gráficas, en este caso de barras, de cada métrica utilizada, para que se pueda hacer una mejor comparación
+from sklearn.svm import SVC #Se importa el algortimo SVM, ya que se decidió que este será el que se usará en la práctica
+from sklearn.metrics import confusion_matrix #Importamos la matriz de confusión para poder visualizar cómo nuestro modelo clasifica las muestras
+import seaborn as sns #Se importa seaborn para visualizar la matriz de confusión
+
+#Usando la librería pandas leemos nuestro archivo, el cual es de datos de pacientes que presentan hipertensión
+df = pd.read_csv('hypertension_data.csv')
+df.dropna(inplace=True)
+
+#Dado que nuestra base de datos es muy extensa, de manera aleatoria, seleccionamos 4000 filas, con el fin de que nuestro modelo sea más rápido
+df = df.sample(n=4000, random_state=42)
+
+#Se agrega una columna de IDs
+df['ID'] = range(1, len(df) + 1)
+
+#Separar características y etiquetas
+
+#La columna target, que es lo que se quiere predecir, por lo que la retiramos de nuestra X
+X = df.drop('target', axis=1)
+
+#Seleccionamos la columna de target y la guardamos en la y, para guardar los resultados de cada paciente
+y = df['target']
+
+#Dividimos los datos en entrenamiento (80%), valoración (10%) y prueba (10%), usando train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_test, X_val, y_test, y_val = train_test_split(X_test, y_test, test_size=0.5, random_state=42)
+
+#Definimos StandarScaler para normalizar los datos, ya que es algo fundamental para SVM
+scaler = StandardScaler()
+
+#Usamos el StandardScaler para normalizar nuestros datos de entrenamiento
+X_train = scaler.fit_transform(X_train)
+
+#Usamos el StandardScaler para normalizar nuestros datos de prueba
+X_test = scaler.transform(X_test)
+
+#Usamos el StandardScaler para normalizar nuestros datos de prueba
+X_val = scaler.transform(X_val)
+
+#Puedes ajustar el tipo de kernel y otros hiperparámetros
+svm_model = SVC(kernel='linear', C=1.0)  
+
+ #Se realiza el entrenamiento con los datos correspondientes
+svm_model.fit(X_train, y_train)
+
+#Se hacen predicciones en X_test (nuestros datos de prueba)
+y_pred_test = svm_model.predict(X_test)
+
+#Se hacen predicciones en X_test (nuestros datos de validación)
+y_pred_val = svm_model.predict(X_val)
+
+#Imprimimos el nombre de este modelo para identificarlo
+print(f'SVM Model Original')
+#Usando la métrica importada se calcula la accuracy de los datos de prueba
+accuracy_test = svm_model.score(X_test,y_test)
+print(f'Test accuracy: {accuracy_test:.4f}')
+
+#Usando la métrica importada se calcula la accuracy de los datos de validación
+accuracy = accuracy_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula la precisión de los datos de validación
+precision = precision_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula el recall de los datos de validación
+recall = recall_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula el recall de los datos de validación
+f1 = f1_score(y_val, y_pred_val)
+
+#Se imprimen las métricas anteriormente calculadas, para visualizarlas y poder evaluar a nuestro modelo
+print(f'Accuracy: {accuracy:.4f}')
+print(f'Precision: {precision:.4f}')
+print(f'Recall: {recall:.4f}')
+print(f'F1-score: {f1:.4f}')
+
+#Se crea nuestra matriz de confusión
+confusion = confusion_matrix(y_val, y_pred_val)
+
+#Se usa seaborn para visualizarla, en este caso queremos tonos azules, números enteros y con etiquetas en los ejes x y y para diferenciar cuando la clase es positiva y negativa
+sns.heatmap(confusion, annot=True, cmap='Blues', fmt='d', xticklabels=['Clase Negativa', 'Clase Positiva'], yticklabels=['Clase Negativa', 'Clase Positiva'])
+
+#Agregamos el título de la matriz de confusión
+plt.title('Matriz de Confusión')
+
+#Usamos plt.show() para que se imprima el gráfico
+plt.show()
+
+#Con el fin de visualizar cómo se separaron los datos en train test y validation haremos una gráfica de barras de estos tres y el df principal
+
+#Primero con .shape que nos da la forma en (#fila, #columnas), con .shape[0] obtenemos el número de filas (pacientes) de nuestro set de entrenamiento
+num_train_samples = X_train.shape[0]
+
+#Hacemos lo mismo con el de prueba
+num_test_samples = X_test.shape[0]
+
+#Hacemos lo mismo con el de valoración
+num_val_samples = X_val.shape[0]
+
+#Hacemos lo mismo con nuestro dataset principal, que cuenta con 4000 filas
+num_df = df.shape[0]
+
+#Definimos las etiquetas de cada barra que crearemos
+labels = [ 'Prueba', 'Validación','Entrenamiento', 'Dataset']
+
+#Guardamos en una lista el número de filas con el que cuenta cada set, con el fin de hacer el gráfico
+data_sizes = [ num_test_samples, num_val_samples,num_train_samples,num_df]
+
+#Con plt.bar hacemos el gráfica y en el definimos las etiquetas, el número de filas de los datos, y los colores que se darán a cada barra del gráfico
+plt.bar(labels, data_sizes, color=['green', 'orange', 'blue','red'])
+
+#Coloamos el título del eje x
+plt.xlabel('Conjunto de Datos')
+
+#Se coloca el título del eje y
+plt.ylabel('Número de Datos')
+
+#Se define el título del gráfico de barras
+plt.title('Distribución de Datos en los Conjuntos')
+
+#Con plt.show() se muestra el gráfico creado, en dónde podemos ver que el 15% de los datos son de prueba, el 15% de validación y, el 80% de entrenamiento, lo cual suma al total
+#del dataset que son 4000 filas, mostrado en la última barra del gráfico
+plt.show()
+
+#Pasamos los datos de entrenamiento a un df para poder hacer un gráfico de dispersión con base a una columna
+X_train1 = pd.DataFrame(X_train, columns=['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach',
+       'exang', 'oldpeak', 'slope', 'ca', 'thal', 'ID'])
+
+#Pasamos los datos de prueba a un df para poder hacer un gráfico de dispersión con base a una columna
+X_test1 = pd.DataFrame(X_test, columns=['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach',
+       'exang', 'oldpeak', 'slope', 'ca', 'thal', 'ID'])
+
+#Pasamos los datos de validación a un df para poder hacer un gráfico de dispersión con base a una columna
+X_val1 = pd.DataFrame(X_val, columns=['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach',
+       'exang', 'oldpeak', 'slope', 'ca', 'thal', 'ID'])
+
+#Para seguir visualizando la división que se hizo en los datos, se crea un gráfico de dispersión con los datos de entrenamiento, prueba y validación con una de las columnas del dataset, en este caso con la de age
+
+#Con plt.figure se crea un gráfico y se define el tamaño de este 
+plt.figure(figsize=(10, 6))
+
+#Con plt.scatter hacemos el gráfico, que tiene en el eje x los datos de edad de entrenamiento, en el eje y los datos del ID de entrenamiento, el color de sus puntos que es azul, la etiqueta para diferenciar a que 
+#datos pertenecen y, el alpha de .5
+plt.scatter(X_train1['age'], X_train1['ID'], c='blue', label='Entrenamiento', alpha=0.5)
+
+#En el mismo gráfico añadimos los datos de prueba, en este caso con el color verde
+plt.scatter(X_test1['age'], X_test1['ID'], c='green', label='Prueba', alpha=0.5)
+
+#En el mismo gráfico añadimos los datos de prueba, en este caso con el color naranja
+plt.scatter(X_val1['age'], X_val1['ID'], c='orange', label='Validación', alpha=0.5)
+
+
+#Se define el título del eje x como Edad
+plt.xlabel('Edad')
+#Se define el título del eje y como ID
+plt.ylabel('ID')
+#Se define el gráfico
+plt.title('Edad vs. ID')
+#Usamos plt.legend para agregar la leyenda al gráfico
+plt.legend()
+#Se muestra el gráfico con los datos de los tres sets
+plt.show()
+
+#Se instala mlxtend para poder calculas la varianza y bias 
+import subprocess
+
+#Ejecutar el comando de instalación
+subprocess.call(['pip', 'install', 'mlxtend'])
+
+#Se importa esta librería para calcular la varianza y el sesgo
+from mlxtend.evaluate import bias_variance_decomp 
+
+#Pasamos el y_train a un arreglo de numpy para poder hacer los calculos
+y_train1 = y_train.values
+
+#Pasamos el y_val a un arreglo de numpy para poder hacer los calculos
+y_val1 = y_val.values
+
+#Calculamos el sesgo y la varianza usando bias_variance_decomp de nuestro modelo. Primero se le da el modelo entrenado, luego los datos de entrenamiento,los de validación que ayudan con la 
+#evaluación del modelo, la función de pérdida para hacer el cálculo del error, el número de iteraciones y, el valor semilla para asegurar que los datos sean reproducibles
+_, bias_val, var_val = bias_variance_decomp(svm_model, X_train, y_train1, X_val, y_val1, loss='mse', num_rounds=20, random_seed=1)
+
+#Pasamos el y_test a un arreglo de numpy para poder hacer los calculos
+y_test1 = y_test.values
+
+#Hacemos el mismo proceso con los datos de prueba, para comparar la varianza y el sesgo
+_, bias_test, var_test = bias_variance_decomp(svm_model, X_train, y_train1, X_test, y_test1, loss='mse', num_rounds=20, random_seed=1)
+
+#Imprimimos el valor de bias, el cual da como 0.1696, que es un buen resultado
+print('Bias Validación: %.4f' % bias_val)
+
+#Se imprime el valor de la varianza que es de .0124, lo cual es también un buen resultado
+print('Variance Validación: %.4f' % var_val)
+
+#Imprimimos el valor de bias, el cual da como 0.1696, que es un buen resultado
+print('Bias Prueba: %.4f' % bias_test)
+
+#Se imprime el valor de la varianza que es de .0124, lo cual es también un buen resultado
+print('Variance Prueba: %.4f' % var_test)
+
+
+#Tomando en cuenta ambos resultados y, debido que los dos datos, tanto en los datos de validación como en los de prueba, son bastante bajos, sabemos que nuestro modelo es bueno y que se tiene un buen ajuste en ambos casos.
+#Si el resultado hubiese sido con el bias alto y la varianza baja tendríamos underfitting, mientras que si la varianza fuese alta y nuestro sesgo bajo sería overfitting, pero en ninguno de los dos casos hay under o overfitting
+
+#Se definen los nombres de las métricas y conjuntos de datos
+metrics = ['Validación', 'Prueba']
+
+#Ponemos en lista los valores obtenidos de varianza y sesgo, de prueba y validación
+bias_values = [bias_val, bias_test]
+variance_values = [var_val, var_test]
+
+#Se definen las posiciones de las barras en el gráfico
+x = np.arange(len(metrics))
+
+#Damos un ancho de las barras
+width = 0.35
+
+#Se crea el gráfico de barras
+fig, ax = plt.subplots(figsize=(10, 6))
+#Se define la primera barra de los valores de sesgo, tanto de prueba como de validación
+bar1 = ax.bar(x - width/2, bias_values, width, label='Sesgo')
+#Se define la segunda barra de los valores de varianza, tanto de prueba como de validación
+bar2 = ax.bar(x + width/2, variance_values, width, label='Varianza')
+
+#Damos las etiquetas en el eje x
+ax.set_xticks(x)
+#Serán de Validación y prueba para identificar de qué set es cada resultado
+ax.set_xticklabels(['Validación', 'Prueba'])
+
+#Se define el título del gráfico
+ax.set_title('Comparación de resultados (sesgo y varianza)')
+
+#Se define la leyenda para poder visualizarla
+ax.legend()
+
+#Con plt se muestra el gráfico de barras
+plt.show()
+
+#Se importa la función learning_curve de sklearn.model_selection
+from sklearn.model_selection import learning_curve
+
+# Calculamos las curvas de aprendizaje utilizando learning_curve con nuestro modelo entrenado svm_model, X_train y y_train y, la lista de tamaños de entrenamiento
+train_sizes, train_scores, test_scores = learning_curve(svm_model, X_train, y_train, train_sizes=[250,500,750,1000,1250,1500,1750,2000,2500,2560])
+#Se grafican las curvas de aprendizaje, la de entrenamiento en rojo y la de prueba en azul
+plt.plot(train_sizes, np.mean(train_scores, axis=1), color='red', label='train')
+plt.plot(train_sizes, np.mean(test_scores, axis=1), color='blue', label='test')
+#Se agrega una leyenda al gráfico
+plt.legend()
+#Damos los títulos para los ejes x y y
+plt.xlabel('Tamaño del Conjunto de Entrenamiento')
+plt.ylabel('Puntuación Media')
+#Se define el título del gráfico
+plt.title('Curva de Aprendizaje')
+#Se muestra el gráfico
+plt.show()
+
+#Con la curva roja que es la de entrenamiento vemos el rendimiento del modelo a medida que aumenta el tamaño del conjunto. Inicialmente, cuando se se entrena con menos datos hay un overfitting ya que la curva de entrenamiento es alta y la de prueba baja. 
+#A medida que se agregan más datos el modelo tiene más datos para generalizar.En cuanto a la curva de prueba vemos que cuando el tamaño del conjunto de entrenamiento es pequeño, el modelo no generaliza bien y, por lo tanto, el rendimiento es bajo, sin embargo
+#a medida que agregamos más datos, el rendimiento mejora, ya que el tiene más información para aprender y generalizar. Como vemos en la gráfica ya que las dos curvas convergen a un rendimiento aceptable a medida que se aumenta el tamaño del conjunto,
+#lo cual indica un buen equilibrio entre sesgo y varianza, y que el modelo está funcionando bien
+
+#Usaremos técnicas de regularización, o ajustes de parámetros para buscar mejorar el desempeño del modelo
+
+#Primero ajustaremos el modelo, añadiendo un hiperparámetro de class_weight, para que nuestro modelo asigne de manera automática pesos inversamente proporcionales
+# a las frecuencias de las clases en los datos de entrenamiento, lo cual ayudará a un mejor desempeño si es que tenemos clases minoritarias
+svm_model_class_weight = SVC(kernel='linear', C=1.0, class_weight='balanced')
+
+ #Se realiza el entrenamiento con los datos correspondientes
+svm_model_class_weight.fit(X_train, y_train)
+
+#Se hacen predicciones en X_test (nuestros datos de prueba)
+y_pred_test = svm_model_class_weight.predict(X_test)
+
+#Se hacen predicciones en X_test (nuestros datos de validación)
+y_pred_val = svm_model_class_weight.predict(X_val)
+
+#Imprimimos el nombre de este modelo para identificarlo
+print(f'SVM Model (class_weight = balanced)')
+
+##Usando la métrica importada se calcula la accuracy de los datos de prueba
+accuracy_test = svm_model_class_weight.score(X_test,y_test)
+print(f'Test accuracy: {accuracy_test:.4f}')
+
+#Usando la métrica importada se calcula la accuracy de los datos de validación
+accuracy = accuracy_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula la precisión de los datos de validación
+precision = precision_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula el recall de los datos de validación
+recall = recall_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula el recall de los datos de validación
+f1 = f1_score(y_val, y_pred_val)
+
+#Se imprimen las métricas anteriormente calculadas, para visualizarlas y poder evaluar a nuestro modelo
+print(f'Accuracy: {accuracy:.4f}')
+print(f'Precision: {precision:.4f}')
+print(f'Recall: {recall:.4f}')
+print(f'F1-score: {f1:.4f}')
+print(f'Podemos ver que nuestro modelo con el hiperparámetro class_weight balanceado ha aumentado la precisión con los datos de prueba')
+print(f'Sin embargo el recall y el F1-score dismiuyeron, por lo que intentaremos usar otra técnica para seguir mejorando')
+
+#Ahora, otra técnica que se puede usar es ajustar el tipo de kernel
+
+#En lugar de usar un kernel lineal, usaremos el kernel rbf (radial basis function), el cual se usa en problemas de clasificación y regresión 
+#y tes capaz de transformar los datos de entrada en un espacio de características de mayor dimensión, para así poder modelar relaciones no lineales
+svm_model_rbf = SVC(kernel='rbf', C=1.0)  
+
+#Se realiza el entrenamiento con los datos correspondientes
+svm_model_rbf.fit(X_train, y_train)
+
+#Se hacen predicciones en X_test (nuestros datos de prueba)
+y_pred_test = svm_model_rbf.predict(X_test)
+
+#Se hacen predicciones en X_test (nuestros datos de validación)
+y_pred_val = svm_model_rbf.predict(X_val)
+
+#Imprimimos el nombre de este modelo para identificarlo
+print(f'SVM Model, kernel:rbf')
+
+##Usando la métrica importada se calcula la accuracy de los datos de prueba
+accuracy_test = svm_model_rbf.score(X_test,y_test)
+print(f'Test accuracy: {accuracy_test:.4f}')
+
+#Usando la métrica importada se calcula la accuracy de los datos de validación
+accuracy = accuracy_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula la precisión de los datos de validación
+precision = precision_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula el recall de los datos de validación
+recall = recall_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula el recall de los datos de validación
+f1 = f1_score(y_val, y_pred_val)
+
+#Se imprimen las métricas anteriormente calculadas, para visualizarlas y poder evaluar a nuestro modelo
+print(f'Accuracy: {accuracy:.4f}')
+print(f'Precision: {precision:.4f}')
+print(f'Recall: {recall:.4f}')
+print(f'F1-score: {f1:.4f}')
+print(f'Podemos ver que nuestro modelo con el hiperparámetro kernel como rbf ha aumentado en todas las métricas, lo cual significa que para nuestro modelo es mejor el kernel de Radial Basis Function')
+
+#Finalmente, para ver si se puede hacer una mayor mejor usaremos técnicas de regularización para buscar mejorar el desempeño del modelo
+#Importamos GridSearchCV para automatizar el proceso de búsqueda de hiperparámetros óptimos para un modelo dado, lo cual hemos estado haciendo de manera manual
+from sklearn.model_selection import GridSearchCV
+
+#Tomando en cuanta que nuestro modelo es SVM definimos los hiperparámetros a buscar, de los cuales queremos identificar cuál es el mejor
+hiperparametros = {'C': [0.1, 1, 10], 'kernel': ['linear', 'rbf', 'poly'], 'gamma': ['scale', 'auto']}
+
+#Creamos el modelo SVM
+svm_model_grid = SVC()
+
+#Se aplica la función Grid Search 
+grid_search = GridSearchCV(svm_model_grid, hiperparametros, cv=5)
+
+#Se realiza el entrenamiento con los datos correspondientes
+grid_search.fit(X_train, y_train)
+
+#Extraemos los mejores hiperparámetros para el modelo SVM
+best_params = grid_search.best_params_
+
+#Se entrena el modelo con los mejores hiperparámetros obtenidos con Grid Search
+svm_model_final = SVC(**best_params)
+
+#Se realiza el entrenamiento con los datos correspondientes
+svm_model_final.fit(X_train, y_train)
+
+#Se hacen predicciones en los datos de prueba con el mejor modelo
+y_pred_test = svm_model_final.predict(X_test)
+
+#Se hacen predicciones en los datos de validación con el mejor modelo
+y_pred_val = svm_model_final.predict(X_val)
+
+#Imprimimos el nombre de este modelo para identificarlo
+print(f'SVM Model: Grid Search')
+
+#Se usa la métrica importada para calcular la accuracy de los datos de prueba
+accuracy_test = svm_model_final.score(X_test, y_test)
+print(f'Test accuracy: {accuracy_test:.4f}')
+
+#Usando la métrica importada se calcula la accuracy de los datos de validación
+accuracy = accuracy_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula la precisión de los datos de validación
+precision = precision_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula el recall de los datos de validación
+recall = recall_score(y_val, y_pred_val)
+
+#Usando la métrica importada se calcula el recall de los datos de validación
+f1 = f1_score(y_val, y_pred_val)
+
+#Se imprimen las métricas anteriormente calculadas, para visualizarlas y poder evaluar a nuestro modelo
+print(f'Accuracy: {accuracy:.4f}')
+print(f'Precision: {precision:.4f}')
+print(f'Recall: {recall:.4f}')
+print(f'F1-score: {f1:.4f}')
+print(f'Como se puede ver, con esta técnica se obtuvieron los mejores resultados del modelo. Gracias a GridSearch se identificó que los mejores parámetros para el modelo eran C:10, gamma:scale y, kernel:rbf como se había hecho en el paso anterior')
+
+#Se crea nuestra matriz de confusión
+confusion = confusion_matrix(y_val, y_pred_val)
+
+#Se usa seaborn para visualizarla, en este caso queremos tonos azules, números enteros y con etiquetas en los ejes x y y para diferenciar cuando la clase es positiva y negativa
+sns.heatmap(confusion, annot=True, cmap='Blues', fmt='d', xticklabels=['Clase Negativa', 'Clase Positiva'], yticklabels=['Clase Negativa', 'Clase Positiva'])
+
+#Agregamos el título de la matriz de confusión
+plt.title('Matriz de Confusión')
+
+#Usamos plt.show() para que se imprima el gráfico
+plt.show()
